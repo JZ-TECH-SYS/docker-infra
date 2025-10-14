@@ -1,0 +1,52 @@
+﻿# 
+#  Infraestrutura Compartilhada - MySQL + phpMyAdmin
+# 
+
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_shared
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - shared_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin_shared
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "8090:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - shared_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    name: mysql_shared_data
+
+networks:
+  shared_network:
+    name: shared_network
+    driver: bridge
