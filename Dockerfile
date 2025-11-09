@@ -15,13 +15,13 @@ RUN apt-get update && apt-get install -y \
 # Configurar e instalar extensões PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-        pdo_mysql \
-        mysqli \
-        gd \
-        soap \
-        zip \
-        mbstring \
-        opcache
+    pdo_mysql \
+    mysqli \
+    gd \
+    soap \
+    zip \
+    mbstring \
+    opcache
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -39,12 +39,12 @@ RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-av
 # Regras comuns: DirectoryIndex, AllowOverride e cache estático
 RUN set -eux; \
     printf "<Directory ${APACHE_DOCUMENT_ROOT}>\n\
-        AllowOverride All\n\
-        Require all granted\n\
+    AllowOverride All\n\
+    Require all granted\n\
     </Directory>\n\
     DirectoryIndex index.php index.html\n\
     <IfModule mod_expires.c>\n\
-        ExpiresActive On\n\
+    ExpiresActive On\n\
     # 1 ano (A=acrescentar segundos) -> 31536000
     ExpiresByType image/webp A31536000\n\
     ExpiresByType image/png A31536000\n\
