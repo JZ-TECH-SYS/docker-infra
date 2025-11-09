@@ -45,11 +45,13 @@ RUN set -eux; \
     DirectoryIndex index.php index.html\n\
     <IfModule mod_expires.c>\n\
         ExpiresActive On\n\
-        ExpiresByType image/webp \"access plus 1y\"\n\
-        ExpiresByType image/png \"access plus 1y\"\n\
-        ExpiresByType image/jpeg \"access plus 1y\"\n\
-        ExpiresByType text/css \"access plus 7d\"\n\
-        ExpiresByType application/javascript \"access plus 7d\"\n\
+    # 1 ano (A=acrescentar segundos) -> 31536000
+    ExpiresByType image/webp A31536000\n\
+    ExpiresByType image/png A31536000\n\
+    ExpiresByType image/jpeg A31536000\n\
+    # 7 dias -> 604800
+    ExpiresByType text/css A604800\n\
+    ExpiresByType application/javascript A604800\n\
     </IfModule>\n" > /etc/apache2/conf-available/zz-app.conf \
     && a2enconf zz-app
 
