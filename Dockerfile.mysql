@@ -1,0 +1,5 @@
+FROM mysql:8.0
+
+# Copiar mysql-client de uma imagem Debian que o tem pré-compilado
+COPY --from=debian:11-slim /usr/bin/mysqldump /usr/bin/mysqldump
+COPY --from=debian:11-slim /usr/lib/x86_64-linux-gnu/libmysqlclient.so* /usr/lib/x86_64-linux-gnu/
