@@ -238,6 +238,14 @@ docker inspect mysql_shared | findstr Health
 
 ##  Dicas
 
+###  **Performance no WSL (já aplicado nesta infra)**
+
+- MySQL com tuning para desenvolvimento em `mysql/conf.d/99-dev-performance.cnf`
+- Binlog desativado e flush reduzido para diminuir I/O no Docker Desktop + WSL
+- Rotação de logs dos containers (`10m` x `3`) para evitar crescimento infinito
+
+>  Atenção: o tuning prioriza velocidade local e pode perder poucos segundos de escrita em caso de desligamento forçado.
+
 ###  **Deixe sempre rodando**
 
 Como é infraestrutura compartilhada, pode deixar sempre ligado:

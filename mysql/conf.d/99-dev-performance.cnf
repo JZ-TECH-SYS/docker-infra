@@ -1,0 +1,16 @@
+[mysqld]
+# Dev/WSL tuning: faster local feedback with a small durability tradeoff.
+innodb_flush_log_at_trx_commit = 2
+sync_binlog = 0
+skip-log-bin
+performance_schema = OFF
+
+# Lower memory overhead for shared local environments.
+max_connections = 120
+table_open_cache = 1024
+tmp_table_size = 64M
+max_heap_table_size = 64M
+innodb_buffer_pool_size = 256M
+
+# Avoid reverse DNS lookups on each connection.
+skip-name-resolve

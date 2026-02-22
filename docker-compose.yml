@@ -6,22 +6,34 @@ services:
   mysql:
     image: mysql:8.0
     container_name: mysql_shared
-    command: --default-authentication-plugin=mysql_native_password
+    command:
+      - --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ./mysql/conf.d:/etc/mysql/conf.d:ro
+    tmpfs:
+      - /tmp
+    mem_limit: 1g
+    cpus: 2.0
     networks:
       - shared_network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
-      interval: 10s
-      timeout: 5s
+      interval: 20s
+      timeout: 3s
       retries: 5
+      start_period: 25s
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   phpmyadmin:
     image: phpmyadmin:latest
@@ -39,7 +51,14 @@ services:
         condition: service_healthy
     networks:
       - shared_network
+    mem_limit: 256m
+    cpus: 0.50
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mysql_data:
