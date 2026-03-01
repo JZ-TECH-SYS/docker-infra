@@ -72,6 +72,9 @@ services:
       MONITOR_INTERVAL_SECONDS: 30
       LOG_RETENTION_DAYS: 14
       LOG_DIR: /logs
+      AUTO_HEAL_ENABLED: 1
+      AUTO_HEAL_COOLDOWN_SECONDS: 120
+      STATE_DIR: /logs/.state
       TZ: America/Sao_Paulo
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
