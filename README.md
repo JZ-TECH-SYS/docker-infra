@@ -234,6 +234,33 @@ docker-compose logs mysql
 docker inspect mysql_shared | findstr Health
 ```
 
+### Ambiente local oscilando (rápido/lento)
+
+```bash
+# Diagnóstico técnico completo (mounts, MySQL tuning, DNS, CPU/memória)
+./doctor.sh
+
+# Tenta corrigir inconsistências recriando apenas os serviços afetados
+./doctor.sh --fix
+```
+
+### Monitoramento contínuo com logs
+
+O serviço `infra_monitor` sobe junto com a infraestrutura e roda `doctor.sh` em loop.
+
+```bash
+# Subir infra + monitor
+docker-compose up -d
+
+# Ver logs do container de monitoramento
+docker-compose logs -f infra_monitor
+
+# Ler logs persistidos no host
+ls -lah ./monitor-logs
+tail -f ./monitor-logs/doctor-monitor-$(date +%F).log
+tail -f ./monitor-logs/doctor-incidents-$(date +%F).log
+```
+
 ---
 
 ##  Dicas

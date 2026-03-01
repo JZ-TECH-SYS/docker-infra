@@ -1,0 +1,12 @@
+FROM docker:29-cli
+
+RUN apk add --no-cache bash coreutils grep sed gawk findutils
+
+WORKDIR /opt/monitor
+
+COPY doctor.sh /opt/monitor/doctor.sh
+COPY monitor/monitor-loop.sh /opt/monitor/monitor-loop.sh
+
+RUN chmod +x /opt/monitor/doctor.sh /opt/monitor/monitor-loop.sh
+
+ENTRYPOINT ["/opt/monitor/monitor-loop.sh"]
