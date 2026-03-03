@@ -252,12 +252,64 @@ check_mysql_tuning() {
   done
 }
 
+check_host_memory_pressure() {
+  local mem_pressure_file="/proc/pressure/memory"
+  local mem_info
+  local mem_total_kb
+  local mem_avail_kb
+  local swap_total_kb
+  local swap_free_kb
+  local pct_avail
+  local pct_swap_used
+
+  # Check PSI memory pressure (Linux 4.20+)
+  if [ -f "$mem_pressure_file" ]; then
+    local full_avg10
+    full_avg10="$(awk '/^full/{print $2}' "$mem_pressure_file" | sed 's/avg10=//')"
+    if awk "BEGIN { exit !($full_avg10 > 10.0) }" 2>/dev/null; then
+      log_warn "Host: HIGH memory pressure (full avg10=${full_avg10}%). System is likely swap-thrashing."
+    elif awk "BEGIN { exit !($full_avg10 > 2.0) }" 2>/dev/null; then
+      log_warn "Host: moderate memory pressure (full avg10=${full_avg10}%)."
+    else
+      log_ok "Host: memory pressure normal (full avg10=${full_avg10}%)."
+    fi
+  fi
+
+  # Check available memory percentage
+  mem_info="$(cat /proc/meminfo 2>/dev/null)"
+  mem_total_kb="$(printf '%s\n' "$mem_info" | awk '/^MemTotal:/{print $2}')"
+  mem_avail_kb="$(printf '%s\n' "$mem_info" | awk '/^MemAvailable:/{print $2}')"
+  swap_total_kb="$(printf '%s\n' "$mem_info" | awk '/^SwapTotal:/{print $2}')"
+  swap_free_kb="$(printf '%s\n' "$mem_info" | awk '/^SwapFree:/{print $2}')"
+
+  if [ -n "$mem_total_kb" ] && [ "$mem_total_kb" -gt 0 ] 2>/dev/null; then
+    pct_avail=$((mem_avail_kb * 100 / mem_total_kb))
+    if [ "$pct_avail" -lt 15 ]; then
+      log_warn "Host: low available memory (${pct_avail}% free, ${mem_avail_kb}kB / ${mem_total_kb}kB)."
+    else
+      log_ok "Host: available memory OK (${pct_avail}% free)."
+    fi
+  fi
+
+  if [ -n "$swap_total_kb" ] && [ "$swap_total_kb" -gt 0 ] 2>/dev/null; then
+    pct_swap_used=$(( (swap_total_kb - swap_free_kb) * 100 / swap_total_kb ))
+    if [ "$pct_swap_used" -gt 50 ]; then
+      log_warn "Host: high swap usage (${pct_swap_used}% used). This causes intermittent slowness."
+    else
+      log_ok "Host: swap usage OK (${pct_swap_used}% used)."
+    fi
+  fi
+}
+
 check_resource_signals() {
   local container
   local cpu_stat
   local mem_events
   local throttled
   local oom_kill
+  local prev_throttled
+  local delta_throttled
+  local state_file
 
   for container in mysql_shared "${API_CONTAINERS[@]}"; do
     if ! is_running_container "$container"; then
@@ -273,10 +325,19 @@ check_resource_signals() {
     throttled="${throttled:-0}"
     oom_kill="${oom_kill:-0}"
 
-    if [ "$throttled" -gt 0 ] 2>/dev/null; then
-      log_warn "$container: CPU throttling events detected (nr_throttled=$throttled)."
+    # Compare with previous value to detect NEW throttling (cgroup counters are cumulative)
+    state_file="${STATE_DIR:-/tmp}/.throttle_${container}"
+    prev_throttled=0
+    if [ -f "$state_file" ]; then
+      prev_throttled="$(cat "$state_file" 2>/dev/null || echo 0)"
+    fi
+    printf '%s' "$throttled" > "$state_file" 2>/dev/null || true
+    delta_throttled=$((throttled - prev_throttled))
+
+    if [ "$delta_throttled" -gt 5 ] 2>/dev/null; then
+      log_warn "$container: CPU throttling detected (delta=$delta_throttled new events since last check)."
     else
-      log_ok "$container: no CPU throttling detected."
+      log_ok "$container: no significant CPU throttling (delta=$delta_throttled)."
     fi
 
     if [ "$oom_kill" -gt 0 ] 2>/dev/null; then
@@ -348,7 +409,7 @@ check_dns_and_latency() {
           $user = getenv("DOCTOR_DB_USER");
           $pass = getenv("DOCTOR_DB_PASS");
           $dsn  = "mysql:host={$host};port={$port};dbname={$db}";
-          for ($i = 0; $i < 6; $i++) {
+          for ($i = 0; $i < 3; $i++) {
             $start = microtime(true);
             $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 2]);
             $pdo->query("SELECT 1")->fetch();
@@ -444,6 +505,9 @@ run_checks() {
 
   log_info "Checking Docker runtime..."
   require_docker || return 1
+
+  # Check host memory pressure (WSL/cgroup level)
+  check_host_memory_pressure
 
   check_mysql_mounts
   check_mysql_tuning

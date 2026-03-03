@@ -69,11 +69,11 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      MONITOR_INTERVAL_SECONDS: 30
+      MONITOR_INTERVAL_SECONDS: 120
       LOG_RETENTION_DAYS: 14
       LOG_DIR: /logs
       AUTO_HEAL_ENABLED: 1
-      AUTO_HEAL_COOLDOWN_SECONDS: 120
+      AUTO_HEAL_COOLDOWN_SECONDS: 300
       STATE_DIR: /logs/.state
       TZ: America/Sao_Paulo
     volumes:
@@ -81,8 +81,8 @@ services:
       - ./monitor-logs:/logs
     networks:
       - shared_network
-    mem_limit: 128m
-    cpus: 0.25
+    mem_limit: 192m
+    cpus: 0.50
     restart: unless-stopped
     logging:
       driver: json-file

@@ -1,7 +1,8 @@
-﻿FROM php:8.1-apache
+FROM php:8.1-fpm
 
-# Instalar dependências do sistema
+# Instalar dependências do sistema e Nginx
 RUN apt-get update && apt-get install -y \
+    nginx \
     libpng-dev \
     libjpeg-dev \
     libwebp-dev \
@@ -9,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libzip-dev \
     libonig-dev \
+    supervisor \
     git \
     unzip \
     && rm -rf /var/lib/apt/lists/*
@@ -28,36 +30,18 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Habilitar módulos úteis do Apache
-RUN a2enmod rewrite headers expires
+# Limpar o Nginx Default e criar o nosso
+COPY ./nginx/default.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+# Tunar PHP-FPM Pool com as configs dinâmicas
+COPY ./nginx/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 
 # DocumentRoot parametrizável para reutilizar esta imagem como base de várias APIs
 ARG APP_DOCROOT=/var/www/html/public
 ENV APACHE_DOCUMENT_ROOT=${APP_DOCROOT}
-# Atualiza vhosts e configs para novo DocumentRoot
-RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
-    && sed -ri -e "s!/var/www/!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Regras comuns: DirectoryIndex, AllowOverride e cache estático
-RUN set -eux; \
-    printf "<Directory ${APACHE_DOCUMENT_ROOT}>\n\
-    AllowOverride All\n\
-    Require all granted\n\
-    </Directory>\n\
-    DirectoryIndex index.php index.html\n\
-    <IfModule mod_expires.c>\n\
-    ExpiresActive On\n\
-    # 1 ano (A=acrescentar segundos) -> 31536000
-    ExpiresByType image/webp A31536000\n\
-    ExpiresByType image/png A31536000\n\
-    ExpiresByType image/jpeg A31536000\n\
-    # 7 dias -> 604800
-    ExpiresByType text/css A604800\n\
-    ExpiresByType application/javascript A604800\n\
-    </IfModule>\n" > /etc/apache2/conf-available/zz-app.conf \
-    && a2enconf zz-app
-
-# Configurar permissões padrão (podem ser sobrescritas via volume)
+# Fix permissions
 RUN mkdir -p /var/www/html \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
@@ -71,6 +55,15 @@ RUN echo "upload_max_filesize = 100M" > /usr/local/etc/php/conf.d/uploads.ini \
     && echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini
 
+# Em vez do apache-foreground, usamos um script de startup para fpm + nginx
+RUN echo '#!/bin/sh' > /usr/local/bin/entrypoint.sh \
+    && echo 'sed -i "s|root /var/www/html/public;|root ${APACHE_DOCUMENT_ROOT};|g" /etc/nginx/sites-available/default' >> /usr/local/bin/entrypoint.sh \
+    && echo 'php-fpm -D' >> /usr/local/bin/entrypoint.sh \
+    && echo 'nginx -g "daemon off;"' >> /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
+
 WORKDIR /var/www/html
 
 EXPOSE 80
+
+CMD ["/usr/local/bin/entrypoint.sh"]
