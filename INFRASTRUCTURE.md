@@ -2,14 +2,15 @@
 
 ## 📍 Localização
 
-A infraestrutura Docker (MySQL + phpMyAdmin + Imagem API) está **centralizada** em:
+A infraestrutura Docker (MySQL + PostgreSQL + ferramentas de administração + Imagem API) está **centralizada** em:
 
 ```
 C:\laragon\www\docker-infra\
 ├── Dockerfile            ← Imagem api_mvc:latest
-├── docker-compose.yml    ← MySQL + phpMyAdmin
+├── docker-compose.yml    ← MySQL + PostgreSQL + painéis
 ├── BUILD.md              ← Como buildar a imagem
-└── mysql/
+├── mysql/
+└── postgres/
 ```
 
 ---
@@ -19,7 +20,7 @@ C:\laragon\www\docker-infra\
 ### Opção A: Rodar API Local (Recomendado para desenvolvimento)
 
 ```powershell
-# 1. Subir apenas MySQL + phpMyAdmin
+# 1. Subir a infraestrutura compartilhada
 cd C:\laragon\www\docker-infra
 docker-compose up -d
 
@@ -52,6 +53,7 @@ cd C:\laragon\www\ClickExpress
 
 - **API:** http://localhost:8089 (se rodar no Docker)
 - **phpMyAdmin:** http://localhost:8090
+- **pgAdmin:** http://localhost:8092
 - **Web:** http://localhost:5173 (npm run dev)
 
 ---
@@ -130,9 +132,31 @@ DB_PASS=root
 ## 💡 Importante
 
 - ✅ MySQL compartilhado com **todos os projetos**
-- ✅ Cada projeto tem seu próprio **database** (`clickexpress`, `projeto2`, etc)
-- ✅ Uma **única porta** para todos: `3307`
-- ✅ Um **único phpMyAdmin** para todos: `http://localhost:8090`
+- ✅ PostgreSQL compartilhado com **todos os projetos**
+- ✅ Cada projeto tem seu próprio **database** (`clickexpress`, `projeto2`, `magazine_povo`, etc)
+- ✅ MySQL exposto em `3307` e PostgreSQL exposto em `5433`
+- ✅ phpMyAdmin em `http://localhost:8090` e pgAdmin em `http://localhost:8092`
+
+### PostgreSQL padrão deste ambiente
+
+Ao subir o ambiente com um volume novo de PostgreSQL, o bootstrap já cria:
+
+- Banco: `magazine_povo`
+- Usuário: `magazine_admin`
+- Senha: `magazine_povo137@`
+- Schema inicial: `sis`
+
+Conexão externa:
+
+```text
+Host: localhost
+Porta: 5433
+Banco: magazine_povo
+Usuário: magazine_admin
+Senha: magazine_povo137@
+```
+
+Se o volume `postgres_shared_data` já existia, esse bootstrap não será reaplicado automaticamente.
 
 ---
 

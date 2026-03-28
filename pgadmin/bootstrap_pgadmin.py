@@ -5,12 +5,8 @@ import sqlite3
 import time
 
 DB_PATH = "/var/lib/pgadmin/pgadmin4.db"
-SERVER_NAME = "postgres_shared"
-GROUP_NAME = "Local"
 HOST = "postgres"
 PORT = 5432
-MAINTENANCE_DB = "postgres"
-USERNAME = "postgres"
 CONNECTION_PARAMS = json.dumps(
     {
         "sslmode": "prefer",
@@ -18,6 +14,20 @@ CONNECTION_PARAMS = json.dumps(
         "passfile": "/var/lib/pgadmin/.pgpass",
     }
 )
+SERVERS = [
+    {
+        "group_name": "Local",
+        "server_name": "postgres_shared",
+        "maintenance_db": "postgres",
+        "username": "postgres",
+    },
+    {
+        "group_name": "Projetos",
+        "server_name": "magazine_povo",
+        "maintenance_db": "magazine_povo",
+        "username": "magazine_admin",
+    },
+]
 
 
 def wait_for_db(timeout_seconds: int = 60) -> sqlite3.Connection:
@@ -69,65 +79,75 @@ def main() -> None:
         raise SystemExit("No pgAdmin user found in config database")
     user_id = user_row[0]
 
-    group_row = cur.execute(
-        "select id from servergroup where user_id = ? and name = ?",
-        (user_id, GROUP_NAME),
-    ).fetchone()
-    if group_row:
-        group_id = group_row[0]
-    else:
-        cur.execute(
-            "insert into servergroup (user_id, name) values (?, ?)",
-            (user_id, GROUP_NAME),
-        )
-        group_id = cur.lastrowid
+    for server in SERVERS:
+        group_row = cur.execute(
+            "select id from servergroup where user_id = ? and name = ?",
+            (user_id, server["group_name"]),
+        ).fetchone()
+        if group_row:
+            group_id = group_row[0]
+        else:
+            cur.execute(
+                "insert into servergroup (user_id, name) values (?, ?)",
+                (user_id, server["group_name"]),
+            )
+            group_id = cur.lastrowid
 
-    server_row = cur.execute(
-        "select id from server where user_id = ? and name = ?",
-        (user_id, SERVER_NAME),
-    ).fetchone()
+        server_row = cur.execute(
+            "select id from server where user_id = ? and name = ?",
+            (user_id, server["server_name"]),
+        ).fetchone()
 
-    payload = (
-        group_id,
-        HOST,
-        PORT,
-        MAINTENANCE_DB,
-        USERNAME,
-        CONNECTION_PARAMS,
-        user_id,
-        SERVER_NAME,
-    )
+        payload = (
+            group_id,
+            HOST,
+            PORT,
+            server["maintenance_db"],
+            server["username"],
+            CONNECTION_PARAMS,
+            user_id,
+            server["server_name"],
+        )
 
-    if server_row:
-        cur.execute(
-            """
-            update server
-               set servergroup_id = ?,
-                   host = ?,
-                   port = ?,
-                   maintenance_db = ?,
-                   username = ?,
-                   connection_params = ?
-             where user_id = ? and name = ?
-            """,
-            payload,
-        )
-    else:
-        cur.execute(
-            """
-            insert into server (
-                user_id,
-                servergroup_id,
-                name,
-                host,
-                port,
-                maintenance_db,
-                username,
-                connection_params
-            ) values (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (user_id, group_id, SERVER_NAME, HOST, PORT, MAINTENANCE_DB, USERNAME, CONNECTION_PARAMS),
-        )
+        if server_row:
+            cur.execute(
+                """
+                update server
+                   set servergroup_id = ?,
+                       host = ?,
+                       port = ?,
+                       maintenance_db = ?,
+                       username = ?,
+                       connection_params = ?
+                 where user_id = ? and name = ?
+                """,
+                payload,
+            )
+        else:
+            cur.execute(
+                """
+                insert into server (
+                    user_id,
+                    servergroup_id,
+                    name,
+                    host,
+                    port,
+                    maintenance_db,
+                    username,
+                    connection_params
+                ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    group_id,
+                    server["server_name"],
+                    HOST,
+                    PORT,
+                    server["maintenance_db"],
+                    server["username"],
+                    CONNECTION_PARAMS,
+                ),
+            )
 
     conn.commit()
     conn.close()

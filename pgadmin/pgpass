@@ -1,1 +1,2 @@
 postgres:5432:postgres:postgres:root
+postgres:5432:magazine_povo:magazine_admin:magazine_povo137@

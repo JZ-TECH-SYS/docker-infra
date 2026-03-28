@@ -1,4 +1,4 @@
-﻿#  Docker Infra - MySQL + phpMyAdmin Compartilhado
+﻿#  Docker Infra - MySQL + PostgreSQL Compartilhados
 
 ##  Propósito
 
@@ -6,6 +6,8 @@ Esta pasta contém a **infraestrutura compartilhada** para TODOS os projetos.
 
 -  1 MySQL servindo múltiplos databases
 -  1 phpMyAdmin para gerenciar tudo
+-  1 PostgreSQL servindo múltiplos bancos
+-  1 pgAdmin para gerenciar o PostgreSQL
 -  Todos os projetos conectam aqui
 
 ---
@@ -19,13 +21,37 @@ cd C:\laragon\www\docker-infra
 docker-compose up -d
 ```
 
-### 2 Acessar phpMyAdmin
+### 2 Acessar os painéis
 
-http://localhost:8090
-- Usuário: `root`
-- Senha: `root`
+- phpMyAdmin: http://localhost:8090
+   - Usuário: `root`
+   - Senha: `root`
+- pgAdmin: http://localhost:8092
+   - Email: `admin@local.dev`
+   - Senha: `root`
 
-### 3 Criar databases para seus projetos
+### 3 PostgreSQL já sobe com o banco magazine_povo
+
+Em volume novo, o bootstrap do Postgres cria automaticamente:
+
+- Banco: `magazine_povo`
+- Usuário: `magazine_admin`
+- Senha: `magazine_povo137@`
+- Schema inicial: `sis`
+
+Conexão para SQL Manager, DBeaver ou aplicação:
+
+```text
+Host: localhost
+Porta: 5433
+Banco: magazine_povo
+Usuário: magazine_admin
+Senha: magazine_povo137@
+```
+
+Se o volume do Postgres já existia antes dessa alteração, o script automático não roda de novo. Nesse caso, recrie o volume ou execute os comandos manualmente uma única vez.
+
+### 4 Criar databases MySQL para seus projetos
 
 ```powershell
 # Acessar MySQL CLI
@@ -120,6 +146,22 @@ docker-compose ps
 docker-compose logs -f
 ```
 
+### PostgreSQL CLI
+
+```powershell
+# Acessar PostgreSQL como admin
+docker exec -it postgres_shared psql -U postgres -d postgres
+
+# Ver bancos
+\l
+
+# Ver roles
+\du
+
+# Entrar no banco da aplicação
+docker exec -it postgres_shared psql -U magazine_admin -d magazine_povo
+```
+
 ### MySQL CLI
 
 ```powershell
@@ -161,6 +203,14 @@ docker volume rm mysql_shared_data
 docker-compose up -d
 ```
 
+Para forçar a reexecução dos scripts iniciais do PostgreSQL:
+
+```powershell
+docker-compose down
+docker volume rm postgres_shared_data
+docker-compose up -d postgres pgadmin
+```
+
 ---
 
 ##  Scripts SQL Iniciais
@@ -195,6 +245,8 @@ docker-compose down
 docker volume rm mysql_shared_data
 docker-compose up -d
 ```
+
+No PostgreSQL, o bootstrap padrão deste repositório fica em `postgres/init/01-bootstrap-magazine-povo.sql` e também só executa na primeira inicialização do volume.
 
 ---
 
