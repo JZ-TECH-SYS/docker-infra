@@ -1,0 +1,32 @@
+{
+  "git.useEditorAsCommitInput": true,
+  "git.inputValidation": true,
+  "git.inputValidationSubjectLength": 72,
+  "git.inputValidationLength": 100,
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Gerar mensagens de commit no padrao Conventional Commits."
+    },
+    {
+      "text": "Usar prefixos em ingles como feat, fix, docs, refactor, chore, test, perf, build, ci, style e revert."
+    },
+    {
+      "text": "Escrever a descricao em portugues do Brasil."
+    },
+    {
+      "text": "Manter o assunto curto, objetivo e sem ponto final."
+    },
+    {
+      "text": "Quando necessario, adicionar corpo com bullets em portugues explicando o que foi feito."
+    }
+  ],
+  "scm.inputFontFamily": "editor",
+  "scm.inputMinLineCount": 4,
+  "scm.inputMaxLineCount": 8,
+  "[git-commit]": {
+    "editor.rulers": [72, 100],
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 100,
+    "workbench.editor.restoreViewState": false
+  }
+}

@@ -137,3 +137,56 @@ DB_PASS=root
 ---
 
 **🎯 Centralizado, simples e eficiente!**
+
+---
+
+## ⚡ Performance WSL2/Docker (Tuning Aplicado)
+
+### Problema Original
+Lentidão intermitente ("do nada fica lento, do nada volta") causada por:
+1. **`autoMemoryReclaim=gradual`** no `.wslconfig` - WSL2 devolvia page cache pro Windows periodicamente, causando stalls de I/O quando Docker/PHP precisava desses dados de volta
+2. **PHP-FPM `pm=dynamic` com `max_children=100`** - cada projeto podia ter até 100 workers × 40MB = 4GB de RAM. Com 10 projetos = 40GB potencial
+3. **Nenhum resource limit** nos containers - sem `mem_limit`, cada um comia RAM infinita
+
+### Correções Aplicadas
+
+**`.wslconfig`** (`C:\Users\jvzyz\.wslconfig`):
+- `autoMemoryReclaim` REMOVIDO (era a causa principal dos stalls)
+- `memory=8GB` (dá 8GB pro Windows respirar)
+- `sparseVhd=true` (compacta VHD automaticamente)
+
+**PHP-FPM** (`nginx/zz-docker.conf`):
+- `pm = ondemand` (workers só existem durante requests, morrem após 10s idle)
+- `pm.max_children = 10` (limite saudável para dev)
+
+**Docker Compose** (todos os projetos):
+- `mem_limit: 384m` em containers API
+- `cpus: 1.5` em containers API
+- MySQL: `mem_limit: 1g`, `cpus: 2.0`
+
+**Stack**: Nginx + PHP-FPM 8.1 (migrado de Apache)
+- OPcache + JIT (buffer 64MB)
+- Nginx keepalive, gzip, open_file_cache
+- DB_HOST: `mysql_shared` (rede interna Docker, não `host.docker.internal`)
+
+### Monitoramento
+```bash
+# Monitor contínuo de latência (captura spikes)
+./latency-watch.sh
+
+# Monitor com múltiplas portas
+./latency-watch.sh 8080 8081 8082
+
+# Diagnóstico completo
+./doctor.sh
+
+# Limpar Docker (rodar periodicamente)
+docker builder prune -f && docker image prune -f
+```
+
+### ⚠️ Após alterar `.wslconfig`
+Reiniciar WSL é **obrigatório**:
+```powershell
+wsl --shutdown
+# Depois reabrir terminal Ubuntu
+```

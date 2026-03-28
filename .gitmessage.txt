@@ -1,0 +1,19 @@
+# <tipo>(<escopo opcional>): <resumo em portugues>
+#
+# Exemplos:
+# feat(api): adicionar controller de usuarios
+# fix(web): corrigir validacao do login por usuario
+# docs: documentar fluxo de notificacoes
+#
+# Detalhes opcionais:
+# - implementar ...
+# - criar ...
+# - ajustar ...
+#
+# Tipos aceitos:
+# feat, fix, refactor, docs, test, chore, perf, build, ci, style, revert
+#
+# Regras:
+# - tudo em pt-BR, exceto tipo e escopo
+# - usar verbo no infinitivo
+# - manter o assunto curto e sem ponto final

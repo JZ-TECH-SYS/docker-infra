@@ -30,9 +30,15 @@ services:
         if [ ! -f 'vendor/autoload.php' ]; then
           composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress;
         fi &&
-        apache2-foreground
+        /usr/local/bin/entrypoint.sh
       "
+    # === RESOURCE LIMITS (obrigatório em WSL2!) ===
+    # Sem limits, 10 projetos rodando = cada um come RAM infinita = swap thrash
+    mem_limit: 384m
+    cpus: 1.5
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     logging:
       driver: json-file
       options:

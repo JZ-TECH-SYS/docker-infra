@@ -1,0 +1,2 @@
+-- Placeholder file to keep the PostgreSQL init directory in version control.
+-- Add project-specific bootstrap SQL files here when needed.

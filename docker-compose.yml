@@ -60,6 +60,67 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  postgres:
+    image: postgres:17
+    container_name: postgres_shared
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /tmp
+    mem_limit: 768m
+    cpus: 1.5
+    networks:
+      - shared_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_shared
+    entrypoint: ["/bin/sh", "/pgadmin4/entrypoint-with-pgpass.sh"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: root
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "8092:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/entrypoint-with-pgpass.sh:/pgadmin4/entrypoint-with-pgpass.sh:ro
+      - ./pgadmin/bootstrap_pgadmin.py:/pgadmin4/bootstrap_pgadmin.py:ro
+      - ./pgadmin/pgpass:/pgadmin4/pgpass:ro
+    networks:
+      - shared_network
+    mem_limit: 256m
+    cpus: 0.50
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   infra_monitor:
     build:
       context: .
@@ -93,6 +154,10 @@ services:
 volumes:
   mysql_data:
     name: mysql_shared_data
+  postgres_data:
+    name: postgres_shared_data
+  pgadmin_data:
+    name: pgadmin_shared_data
 
 networks:
   shared_network:
