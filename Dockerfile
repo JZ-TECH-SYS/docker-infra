@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libwebp-dev \
     libfreetype6-dev \
     libxml2-dev \
+    libpq-dev \
     libzip-dev \
     libonig-dev \
     supervisor \
@@ -19,7 +20,9 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
+    pdo_pgsql \
     mysqli \
+    pgsql \
     gd \
     soap \
     zip \

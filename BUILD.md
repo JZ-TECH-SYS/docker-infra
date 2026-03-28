@@ -21,12 +21,21 @@ docker build --no-cache -t api_mvc:latest .
 
 ##  O que está na imagem?
 
--  PHP 8.1 + Apache
--  Extensões: pdo_mysql, mysqli, gd, soap, zip, mbstring
+-  PHP 8.1 + Nginx + PHP-FPM
+-  Extensões: pdo_mysql, pdo_pgsql, mysqli, pgsql, gd, soap, zip, mbstring
 -  Composer instalado
--  mod_rewrite habilitado
+-  Nginx configurado para servir a API
 -  Upload até 100MB
 -  Memory limit 256MB
+
+##  Rebuild obrigatório após adicionar driver
+
+Se a API já estava rodando antes dessa alteração, faça rebuild da imagem para o driver PostgreSQL entrar de fato no container:
+
+```powershell
+cd C:\laragon\www\docker-infra
+docker build --no-cache -t api_mvc:latest .
+```
 
 ##  Usar em projetos
 
