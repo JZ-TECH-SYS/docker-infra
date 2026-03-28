@@ -2,9 +2,9 @@ DO
 $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'magazine_admin') THEN
-        CREATE ROLE magazine_admin LOGIN PASSWORD 'magazine_povo137@';
+        CREATE ROLE magazine_admin LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD 'magazine_povo137@';
     ELSE
-        ALTER ROLE magazine_admin WITH LOGIN PASSWORD 'magazine_povo137@';
+        ALTER ROLE magazine_admin WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD 'magazine_povo137@';
     END IF;
 END
 $$;
