@@ -1,2 +1,5 @@
 monitor-logs/*
 !monitor-logs/.gitkeep
+
+# knowledge graph do graphify (local, reconstruível)
+graphify-out/
